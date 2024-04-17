@@ -76,20 +76,8 @@
     <div class="card-body messages-box">
       
       <ul class="list-unstyled messages-list">
-        
-        <!-- <li class="message received">
-          <div class="message-text">
-            <div class="message-sender">
-              <b>AI Chatbot</b>
-            </div>
-            <div class="message-content">
-              Hi {{user.username}}, I am your AI Chatbot, you can ask me anything.
-            </div>
-          </div>
-        </li> -->
-
         {% for chat in chats %}
-          {% if chat.user == request.user %}
+          {% if chat.image %}
 
             <li class="message sent">
           <div class="message-text">
@@ -97,11 +85,11 @@
               <b>You</b>
             </div>
             <div class="message-content">
-              {{chat.message}}
+              <img src="{{ chat.image.url }}" alt="Uploaded image">
             </div>
           </div>
         </li>
-
+        {% endif %}
         <li class="message received">
           <div class="message-text">
             <div class="message-sender">
@@ -112,8 +100,8 @@
             </div>
           </div>
         </li>
-
-          {% endif %}
+        
+          {% comment %} {% endif %} {% endcomment %}
         {% endfor %}
         
       </ul>
@@ -123,10 +111,10 @@
     <br><br>
     <br><br>
   </div>
-  <form class="message-form">
+  <form class="message-form" enctype="multipart/form-data">
     {%csrf_token%}
     <div class="input-group">
-      <input type="text" class="form-control message-input" placeholder="Type your message...">
+      <input type="file" name="image" class="form-control message-input" accept="image/*">
       <div class="input-group-append">
         <button type="submit" class="btn btn-primary btn-send">Send</button>
       </div>
@@ -137,57 +125,70 @@
 <script>
   const messagesList = document.querySelector('.messages-list');
   const messageForm = document.querySelector('.message-form');
-  const messageInput = document.querySelector('.message-input');
+  //const messageInput = document.querySelector('.message-input');
 
   messageForm.addEventListener('submit', (event) => {
     event.preventDefault();
 
-    const message = messageInput.value.trim();
-    if (message.length === 0) {
+    const imageFile = messageForm.querySelector('input[type="file"]').files[0];
+    if (!imageFile) {
+      alert('Please select an image file to send.');
       return;
     }
 
+
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+  {% comment %} const messageItem = document.createElement('li');
+  messageItem.classList.add('message', 'sent');
+  messageItem.innerHTML = `
+      <div class="message-text">
+          <div class="message-sender">
+              <b>You</b>
+          </div>
+          <div class="message-content">
+              <img src="${URL.createObjectURL(file)}" alt="Sent Image" style="max-width: 100%; height: auto;">
+          </div>
+      </div>`;
+  messagesList.appendChild(messageItem); {% endcomment %}
+
+  
+  fetch('', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.error) {
+      alert(data.error); // Display error message from server
+      return;
+    }
+
+    const response = data.response;
     const messageItem = document.createElement('li');
-    messageItem.classList.add('message', 'sent');
+    messageItem.classList.add('message', 'received');
     messageItem.innerHTML = `
-        <div class="message-text">
-            <div class="message-sender">
-                <b>You</b>
-            </div>
-            <div class="message-content">
-                ${message}
-            </div>
-        </div>`;
+      <div class="message-text">
+        <div class="message-sender">
+          <b>AI Chatbot</b>
+        </div>
+        <div class="message-content">
+          ${response}
+        </div>
+      </div>`;
     messagesList.appendChild(messageItem);
 
-    messageInput.value = '';
-
-    fetch('', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        'csrfmiddlewaretoken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-        'message': message
-      })
-    })
-      .then(response => response.json())
-      .then(data => {
-        const response = data.response;
-        const messageItem = document.createElement('li');
-        messageItem.classList.add('message', 'received');
-        messageItem.innerHTML = `
-        <div class="message-text">
-            <div class="message-sender">
-              <b>AI Chatbot</b>
-            </div>
-            <div class="message-content">
-                ${response}
-            </div>
-        </div>
-          `;
-        messagesList.appendChild(messageItem);
-      });
+    // Optionally, clear the image input field after successful upload
+    messageForm.querySelector('input[type="file"]').value = null;
+  })
+  .catch(error => {
+    console.error('Error sending image:', error);
+    alert('An error occurred while sending the image. Please try again.');
   });
+});
+
 
 </script>
 {% endblock %}

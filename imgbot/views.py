@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
-import openai
+# import openai
 
 from django.contrib import auth
 from django.contrib.auth.models import User
 from .models import Chat
 
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt  # Handle CSRF protection
 
 
 # Create your views here.
@@ -14,12 +15,23 @@ def chatbot(request):
     chats = Chat.objects.filter(user=request.user)
 
     if request.method == 'POST':
-        message = request.POST.get('message')
-        response = "ask_openai(message)"
+        image = request.FILES.get('image')  # Access uploaded image
+        if image:
+            chat = Chat(user=request.user, image=image, created_at=timezone.now())
+            chat.save()
 
-        chat = Chat(user=request.user, message=message, response=response, created_at=timezone.now())
-        chat.save()
-        return JsonResponse({'message': message, 'response': response})
+            # Process the image using appropriate libraries (e.g., Pillow)
+            # ... (your image processing logic here)
+
+            # Generate AI chatbot response based on image content (replace with your implementation)
+            response = "This is a response based on the uploaded image."
+            chat.response = response
+            chat.save()
+
+            return JsonResponse({'message': 'Image uploaded successfully!', 'response': response})
+        else:
+            return JsonResponse({'error': 'Please upload an image.'})
+
     return render(request, 'chatbot.html', {'chats': chats})
 
 

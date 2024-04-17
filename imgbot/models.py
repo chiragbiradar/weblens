@@ -4,10 +4,10 @@ from django.contrib.auth.models import User
 # Create your models here.
 class Chat(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    
-    message = models.ImageField(upload_to='images/') # models.TextField()
+    image = models.ImageField(upload_to='images/')  
+    # message = models.ImageField(upload_to='images/') # models.TextField()
     response = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'{self.user.username}: {self.message}'
+        return f'{self.user.username}: {self.image.name}'
